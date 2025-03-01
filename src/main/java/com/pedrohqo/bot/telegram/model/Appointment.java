@@ -6,6 +6,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 
 @Entity
 public class Appointment {
@@ -17,6 +19,18 @@ public class Appointment {
 	private String nomeCliente;
 	private LocalDateTime dateTime;
 	
+	@ManyToOne
+	@JoinColumn(name = "service_id", nullable=false)
+	private BotService botService;
+	
+	
+	
+	public BotService getBotService() {
+		return botService;
+	}
+	public void setBotService(BotService botService) {
+		this.botService = botService;
+	}
 	public Long getId() {
 		return id;
 	}
@@ -35,6 +49,9 @@ public class Appointment {
 	public void setDateTime(LocalDateTime dateTime) {
 		this.dateTime = dateTime;
 	}
+	
+	
+	
 	
 	
 }

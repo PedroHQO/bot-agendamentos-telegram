@@ -7,6 +7,7 @@ public class UserState {
 	private String name;
 	private String aguardando_confirmacao;
 	private LocalDateTime dateTime;
+	private Long serviceId;
 	
 	
 	public String getState() {
@@ -35,5 +36,12 @@ public class UserState {
 	public void setDateTime(LocalDateTime dateTime) {
 		this.dateTime = dateTime;
 	}
+	public Long getServiceId() {
+		return serviceId;
+	}
+	public void setServiceId(Long serviceId) {
+		this.serviceId = serviceId;
+	}
+	
 	
 }
