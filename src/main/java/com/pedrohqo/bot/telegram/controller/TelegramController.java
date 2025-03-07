@@ -32,7 +32,7 @@ public class TelegramController extends TelegramWebhookBot {
 
 	@Autowired
 	private ServiceRepository serviceRepository;
-	
+
 	@Override
 	public String getBotUsername() {
 		return "Bot-Agendador";
@@ -77,96 +77,104 @@ public class TelegramController extends TelegramWebhookBot {
 			} else if (userStateObj != null && "AGUARDANDO_DATA".equals(userStateObj.getState())) {
 				try {
 					DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-					LocalDateTime dateTime = LocalDateTime.parse(text, formatter);		
+					LocalDateTime dateTime = LocalDateTime.parse(text, formatter);
+					
+					boolean isDateTaken = appointmentRepository.existsByDateTime(dateTime);
+					if(isDateTaken) {
+						return sendMessage(chatId, "⚠️ Este horário já está ocupado. Por favor, escolha outro horário!");
+					}
 
 					userStateObj.setDateTime(dateTime);
 					userStateObj.setState("AGUARDANDO_SERVICO");
-					
+
 					StringBuilder response = new StringBuilder("Ótimo! Agora, escolha um serviço pelo o Número:\n\n");
-					for(BotService botService : serviceRepository.findAll()) {
-						response.append("🔹 ").append(botService.getId())
-						.append(": ").append(botService.getNome())
-						.append(" - ").append(botService.getDescricao())
-						.append(" - R$ ").append(botService.getPreco()).append("\n");
+					for (BotService botService : serviceRepository.findAll()) {
+						response.append("🔹 ").append(botService.getId()).append(": ").append(botService.getNome())
+								.append(" - ").append(botService.getDescricao()).append(" - R$ ")
+								.append(botService.getPreco()).append("\n");
 					}
 					return sendMessage(chatId, response.toString());
-					
-					} catch (DateTimeParseException e) {
+
+				} catch (DateTimeParseException e) {
 					return sendMessage(chatId, "Formato de data inválido. Por favor, use o formato dd/MM/yyyy HH:mm!");
 				}
-			}else if(userStateObj != null && "AGUARDANDO_SERVICO".equalsIgnoreCase(userStateObj.getState())) {
+			} else if (userStateObj != null && "AGUARDANDO_SERVICO".equalsIgnoreCase(userStateObj.getState())) {
 				try {
 					Long serviceId = Long.parseLong(text);
 					BotService selectedService = serviceRepository.findById(serviceId).orElse(null);
-					
-					if(selectedService == null) {
-						return sendMessage(chatId, "⚠️ Número do serviço inválido. Por favor, escolha um Número da lista.");
+
+					if (selectedService == null) {
+						return sendMessage(chatId,
+								"⚠️ Número do serviço inválido. Por favor, escolha um Número da lista.");
 					}
-					
+
 					userStateObj.setServiceId(serviceId);
 					userStateObj.setState("AGUARDANDO_CONFIRMACAO");
-					
-					return sendMessage(chatId, "🔍 Você escolheu o serviço: " + selectedService.getNome() +
-							"\n💰 Preço: R$ " + selectedService.getPreco() +
-							"\n\nConfirme seu agendamento:\n" +
-							"1️⃣ Confirmar\n" +
-							"2️⃣ Corrigir data\n" +
-							"3️⃣ Cancelar");	
-				}catch (NumberFormatException e) {
-					return sendMessage(chatId, "⚠️ Entrada inválida. Informe o Número do serviço corretamente.");
+
+					return sendMessage(chatId,
+							"🔍 Dados do agendamento: \n" + "Nome: " + userStateObj.getName() + "\nServico: "
+									+ selectedService.getNome() + "\nData Agendamento: " + userStateObj.getDateTime()
+									+ "\nPreço: R$ " + selectedService.getPreco() + "\n\nConfirme seu agendamento:\n"
+									+ "1️⃣ Confirmar\n" + "2️⃣ Corrigir data\n" + "3️⃣ Cancelar");
+				} catch (NumberFormatException e) {
+					return sendMessage(chatId, "⚠️ Número do serviço inválido. Por favor, escolha um Número da lista.");
 				}
-			}
-			else if(userStateObj != null && "AGUARDANDO_CONFIRMACAO".equals(userStateObj.getState())) {
-					if("1".equals(text)) {
-						Appointment appointment = new Appointment();
-						appointment.setNomeCliente(userStateObj.getName());
-						appointment.setDateTime(userStateObj.getDateTime());
-						Long serviceId = userStateObj.getServiceId();
-						BotService botService = serviceRepository.findById(serviceId)
-								.orElseThrow(() -> new RuntimeException("Servico não encontrado com o ID: " + serviceId));
-						
-						appointment.setBotService(botService);
-						appointmentRepository.save(appointment);
-						
-						userState.remove(chatId);
-						return sendMessage(chatId, "✅ Agendamento confirmado com sucesso!");
-					}else if("2".equals(text)) {
-						userStateObj.setState("AGUARDANDO_DATA");
-						return sendMessage(chatId, "🔄 Ok! Informe novamente a data e horário (formato: dd/MM/yyyy HH:mm):");
-						
-					}else if("3".equals(text)) {
-						userState.remove(chatId);
-						return sendMessage(chatId, "❌ Agendamento cancelado. Caso queira tentar novamente, digite /agendar.");
-					}else {
-						return sendMessage(chatId, "⚠️ Opção inválida. Por favor, escolha:\n\n" +
-		                        "1️⃣ Confirmar\n" +
-		                        "2️⃣ Corrigir data\n" +
-		                        "3️⃣ Cancelar");
-					}
-			}else if(text.equalsIgnoreCase("/servicos")){
+			} else if (userStateObj != null && "AGUARDANDO_CONFIRMACAO".equals(userStateObj.getState())) {
+				if ("1".equals(text)) {
+					Appointment appointment = new Appointment();
+					appointment.setNomeCliente(userStateObj.getName());
+					appointment.setDateTime(userStateObj.getDateTime());
+					Long serviceId = userStateObj.getServiceId();
+					BotService botService = serviceRepository.findById(serviceId)
+							.orElseThrow(() -> new RuntimeException("Servico não encontrado com o ID: " + serviceId));
+
+					appointment.setBotService(botService);
+					appointmentRepository.save(appointment);
+
+					userState.remove(chatId);
+					return sendMessage(chatId, "✅ Agendamento confirmado com sucesso!");
+				} else if ("2".equals(text)) {
+					userStateObj.setState("AGUARDANDO_DATA");
+					return sendMessage(chatId,
+							"🔄 Ok! Informe novamente a data e horário (formato: dd/MM/aaaa HH:mm):");
+
+				} else if ("3".equals(text)) {
+					userState.remove(chatId);
+					return sendMessage(chatId,
+							"❌ Agendamento cancelado. Caso queira tentar novamente, digite /agendar.");
+				} else {
+					return sendMessage(chatId, "⚠️ Opção inválida. Por favor, escolha:\n\n" + "1️⃣ Confirmar\n"
+							+ "2️⃣ Corrigir data\n" + "3️⃣ Cancelar");
+				}
+			} else if (text.equalsIgnoreCase("/servicos")) {
 				return listarServicos(chatId);
-			}
-			else {
-				return sendMessage(chatId, "Olá! Para ver nossos serviços digite /servicos \n\n"
-						+ " Para agendar uma consulta, digite /agendar");
+			}else if(text.equalsIgnoreCase("/disponibilidade")) {
+				return listaDatasDisponiveis(chatId);
+				
+			}else if(text.equalsIgnoreCase("/duvidas")) {
+				return listarDuvidas(chatId);
+				
+			} else {
+				return sendMessage(chatId, "Olá! Para ver nossos serviços\ndigite /servicos \n\n"
+						+ " Para agendar uma consulta,\ndigite /agendar"
+						+ "\n\nPara ver datas e horários já agendados\ndigite /disponibilidade"
+						+ "\n\nPara ver as perguntas frequentes\ndigite /duvidas");
 			}
 		}
 
 		return null;
 	}
-	
-	private BotApiMethod<?> listarServicos(Long chatId){
+
+	private BotApiMethod<?> listarServicos(Long chatId) {
 		StringBuilder response = new StringBuilder("📋 Nossos Serviços Disponíveis:\n\n");
-		
-		for(BotService botService : serviceRepository.findAll()) {
-			response.append("🔹 ").append(botService.getId())
-			.append(": ").append(botService.getNome())
-			.append(" - ").append(botService.getDescricao())
-			.append(" - R$ ").append(botService.getPreco()).append("\n");
+
+		for (BotService botService : serviceRepository.findAll()) {
+			response.append("🔹 ").append(botService.getId()).append(": ").append(botService.getNome()).append(" - ")
+					.append(botService.getDescricao()).append(" - R$ ").append(botService.getPreco()).append("\n");
 		}
-		
+
 		return sendMessage(chatId, response.toString());
-		
+
 	}
 
 	private SendMessage sendMessage(Long chatId, String text) {
@@ -174,5 +182,45 @@ public class TelegramController extends TelegramWebhookBot {
 		message.setChatId(chatId.toString());
 		message.setText(text);
 		return message;
+	}
+	
+	private BotApiMethod<?> listaDatasDisponiveis(Long chatId){
+		StringBuilder response = new StringBuilder("📅 Dias e horários já agendados:\n\n");
+		
+		for(Appointment appointment : appointmentRepository.findAll()) {
+			response.append("📌 ").append(appointment.getDateTime().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")))
+				.append(" - ").append(appointment.getNomeCliente()).append("\n");
+			
+		}
+		
+		return sendMessage(chatId, response.toString());
+	}
+
+	private BotApiMethod<?> listarDuvidas(Long chatId) {
+		StringBuilder response = new StringBuilder("❓ Perguntas Frequentes ❓\n\n");
+
+		response.append("1- Como faço para agendar um serviço?\n")
+				.append("👉 Digite /agendar e siga as instruções para escolher um serviço e definir a data.\n\n");
+
+		response.append("2- Quais serviços vocês oferecem?\n")
+				.append("👉 Digite /servicos para visualizar a lista completa dos serviços disponíveis.\n\n");
+
+		response.append("3- Posso cancelar um agendamento?\n")
+				.append("👉 Sim! Durante o processo de confirmação, escolha a opção 3️⃣ para cancelar.\n\n");
+
+		response.append("4- Como posso entrar em contato?\n").append(
+				"👉 Para mais informações, entre em contato pelo nosso suporte no WhatsApp: (XX) XXXX-XXXX.\n\n");
+		
+		response.append("5- Como faço para corrigir um agendamento?\n"
+				+ "👉 Assim que preencher todos os dados, será apresentado 3 opções, escolha a opção 2️⃣ para "
+				+ "Corrigir data(Com esta opção é possível inserir novamente data e serviço desejado!\n\n");
+		response.append("6- Erro: 'Formato de data inválido. Por favor, use o formato dd/MM/yyyy HH:mm!' O que fazer?"
+				+ "\nCertifique-se de que preencheu a data no seguinte formato: dia/mês/ano Horas:minutos"
+				+ "\nEx:01/01/2025 09:30(Lembre-se de colocar as barras!)");
+		response.append("-7 Erro: 'Este horário já está ocupado. Por favor, escolha outro horário!'\n"
+				+ "Basta digitar '/disponibilidade' que aparecerá as datas e horários já preenchidos.\n"
+				+ "Após isto escolha um outro horário!");
+
+		return sendMessage(chatId, response.toString());
 	}
 }
