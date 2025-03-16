@@ -15,6 +15,7 @@ import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import com.pedrohqo.bot.telegram.model.Appointment;
 import com.pedrohqo.bot.telegram.model.BotService;
@@ -124,6 +125,8 @@ public class TelegramController extends TelegramWebhookBot {
 					Appointment appointment = new Appointment();
 					appointment.setNomeCliente(userStateObj.getName());
 					appointment.setDateTime(userStateObj.getDateTime());
+					appointment.setChatId(chatId);
+					
 					Long serviceId = userStateObj.getServiceId();
 					BotService botService = serviceRepository.findById(serviceId)
 							.orElseThrow(() -> new RuntimeException("Servico não encontrado com o ID: " + serviceId));
@@ -222,5 +225,17 @@ public class TelegramController extends TelegramWebhookBot {
 				+ "Após isto escolha um outro horário!");
 
 		return sendMessage(chatId, response.toString());
+	}
+	
+	protected void enviarNotificacaoTelegram(Long chatId, String mensagem) {
+		SendMessage message = new SendMessage();
+		message.setChatId(chatId.toString());
+		message.setText(mensagem);
+		
+		try {
+			execute(message);
+		}catch(TelegramApiException e) {
+			e.printStackTrace();
+		}
 	}
 }

@@ -18,6 +18,8 @@ public class Appointment {
 	
 	private String nomeCliente;
 	private LocalDateTime dateTime;
+	private boolean confirmado;
+	private Long chatId;
 	
 	@ManyToOne
 	@JoinColumn(name = "service_id", nullable=false)
@@ -49,9 +51,18 @@ public class Appointment {
 	public void setDateTime(LocalDateTime dateTime) {
 		this.dateTime = dateTime;
 	}
+	public boolean isConfirmado() {
+		return confirmado;
+	}
+	public void setConfirmado(boolean confirmado) {
+		this.confirmado = confirmado;
+	}
+	public Long getChatId() {
+		return chatId;
+	}
+	public void setChatId(Long chatId) {
+		this.chatId = chatId;
+	}
 	
-	
-	
-	
-	
+
 }
