@@ -19,6 +19,10 @@ import com.pedrohqo.bot.telegram.model.Appointment;
 import com.pedrohqo.bot.telegram.model.UserState;
 import com.pedrohqo.bot.telegram.repository.AppointmentRepository;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+
 @RestController
 public class AgendamentoController {
 
@@ -29,14 +33,24 @@ public class AgendamentoController {
 	private TelegramController telegramController;
 	
 	@GetMapping
+	@Operation(summary = "Listar agendamentos", description = "Retorna uma lista com todos os agendamentos")
+	@ApiResponse(responseCode = "200", description = "Agendamentos encontrados")
 	public List<Appointment> listarAgendamentos(){
 		return appointmentRepository.findAll();
 	}
 	
 	@GetMapping("/filtro")
+	@Operation(summary = "Filtrar agendamentos", description = "Retorna uma lista de agendamentos filtrados por data, "
+			+ "nome do cliente ou serviço.")
+	@ApiResponse(responseCode = "200", description = "Agendamentos encontrados")
 	public List<Appointment> filtrarAgendamentos(
+		@Parameter(description = "Data e hora do agendamento", example = "2025-10-05T10:09:00")
 		@RequestParam(required = false) LocalDateTime dateTime,
+		
+		@Parameter(description = "Nome cliente", example = "Pedro Henrique")
 		@RequestParam(required = false) String nomeCliente,
+		
+		@Parameter(description = "ID do serviço", example = "1")
 		@RequestParam(required = false) Long botService){
 		
 		try {
@@ -50,11 +64,16 @@ public class AgendamentoController {
 				return appointmentRepository.findAll();
 			}
 		}catch(Exception e) {
-		throw new FiltroAgendamentoException("Erro ao filtrar agendamento, verifique informações digitadas no filtro e tente novamente!" + e.getMessage());
+		throw new FiltroAgendamentoException("Erro ao filtrar agendamento, verifique informações digitadas no filtro "
+				+ "e tente novamente!" + e.getMessage());
 		}
 	}
 	
+	
 	@PutMapping("/{id}/confirmar")
+	@Operation(summary = "Confirmar agendamento", description = "Disponibiliza para o prestador confirmar o "
+			+ "agendamento ou cancelar, a escolha dispara uma mensagem para o cliente")
+	@ApiResponse(responseCode = "200", description = "Agendamento confirmado com sucesso")
 	public ResponseEntity<String> confirmarAgendamento(@PathVariable Long id){
 		try {
 			Appointment appointment = appointmentRepository.findById(id)
@@ -77,6 +96,8 @@ public class AgendamentoController {
 	}
 	
 	@PutMapping("/{id}/cancelar")
+	@Operation(summary = "Cancelar agendamento", description = "Cancela um agendamento pelo ID.")
+    @ApiResponse(responseCode = "200", description = "Agendamento cancelado com sucesso")
 	public ResponseEntity<String> cancelarAgendamento(@PathVariable Long id){
 		try {
 			Appointment appointment = appointmentRepository.findById(id)

@@ -2,9 +2,9 @@
 *.log
 .classpath 
 .project   
-/target/          # Diretório de saída do Maven
-/build/           # Diretório de saída do Gradle
-/out/             # Diretório de saída do IntelliJ IDEA
-/bin/             # Diretório de compilação do Eclipse
-/classes/         # Classes compiladas
+/target/        
+/build/           
+/out/            
+/bin/             
+/classes/         
 *.properties

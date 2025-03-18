@@ -2,6 +2,7 @@ package com.pedrohqo.bot.telegram.model;
 
 import java.time.LocalDateTime;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -14,11 +15,19 @@ public class Appointment {
 	
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Schema(description = "ID do agendamento", example = "48")
 	private Long id;
 	
+	@Schema(description = "Nome do cliente", example = "Pedro")
 	private String nomeCliente;
+	
+	@Schema(description = "Data e hora do agendamento", example = "2023-10-01T10:00:00")
 	private LocalDateTime dateTime;
+	
+	@Schema(description = "Indica se o agendamento foi confirmado", example = "true")
 	private boolean confirmado;
+	
+	@Schema(description = "ID do chat no Telegram", example = "123456789")
 	private Long chatId;
 	
 	@ManyToOne
