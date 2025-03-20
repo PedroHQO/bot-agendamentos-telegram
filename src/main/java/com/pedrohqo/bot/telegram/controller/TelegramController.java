@@ -3,7 +3,9 @@ package com.pedrohqo.bot.telegram.controller;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +17,9 @@ import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardRemove;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import com.pedrohqo.bot.telegram.model.Appointment;
@@ -65,15 +70,27 @@ public class TelegramController extends TelegramWebhookBot {
 			// Recupera o estado do usuário
 			UserState userStateObj = userState.get(chatId);
 
-			if (text.equalsIgnoreCase("/agendar")) {
+			if (text.equalsIgnoreCase("/start") || text.equalsIgnoreCase("Menu")) {
+				return sendMessageWithKeyboard(chatId, "Olá! Escolha uma opção:");
+			}
+			
+			else if(text.equalsIgnoreCase("Agendar")) {
 				userStateObj = new UserState(); // Inicializa o estado do usuário
 				userStateObj.setState("AGUARDANDO_NOME");
 				userState.put(chatId, userStateObj);
-				return sendMessage(chatId, "Por gentileza informe seu nome:");
-			} else if (userStateObj != null && "AGUARDANDO_NOME".equals(userStateObj.getState())) {
+				return sendMessageWithKeyboard(chatId, "Por gentileza informe seu nome:");
+			}else if(text.equalsIgnoreCase("Serviços")) {
+				return listarServicos(chatId);
+			}else if(text.equalsIgnoreCase("Disponibilidade")) {
+				return listaDatasDisponiveis(chatId);
+			}else if(text.equalsIgnoreCase("Dúvidas")) {
+				return listarDuvidas(chatId);
+			}
+			
+			else if (userStateObj != null && "AGUARDANDO_NOME".equals(userStateObj.getState())) {
 				userStateObj.setName(text); // Salva o nome do cliente
 				userStateObj.setState("AGUARDANDO_DATA");
-				return sendMessage(chatId,
+				return sendMessageWithKeyboard(chatId,
 						"Ótimo, " + text + "! Agora, informe a data e horário (formato: dd/MM/yyyy HH:mm):");
 			} else if (userStateObj != null && "AGUARDANDO_DATA".equals(userStateObj.getState())) {
 				try {
@@ -82,7 +99,7 @@ public class TelegramController extends TelegramWebhookBot {
 					
 					boolean isDateTaken = appointmentRepository.existsByDateTime(dateTime);
 					if(isDateTaken) {
-						return sendMessage(chatId, "⚠️ Este horário já está ocupado. Por favor, escolha outro horário!");
+						return sendMessageWithKeyboard(chatId, "⚠️ Este horário já está ocupado. Por favor, escolha outro horário!");
 					}
 
 					userStateObj.setDateTime(dateTime);
@@ -94,10 +111,10 @@ public class TelegramController extends TelegramWebhookBot {
 								.append(" - ").append(botService.getDescricao()).append(" - R$ ")
 								.append(botService.getPreco()).append("\n");
 					}
-					return sendMessage(chatId, response.toString());
+					return sendMessageWithKeyboard(chatId, response.toString());
 
 				} catch (DateTimeParseException e) {
-					return sendMessage(chatId, "Formato de data inválido. Por favor, use o formato dd/MM/yyyy HH:mm!");
+					return sendMessageWithKeyboard(chatId, "Formato de data inválido. Por favor, use o formato dd/MM/yyyy HH:mm!");
 				}
 			} else if (userStateObj != null && "AGUARDANDO_SERVICO".equalsIgnoreCase(userStateObj.getState())) {
 				try {
@@ -105,20 +122,20 @@ public class TelegramController extends TelegramWebhookBot {
 					BotService selectedService = serviceRepository.findById(serviceId).orElse(null);
 
 					if (selectedService == null) {
-						return sendMessage(chatId,
+						return sendMessageWithKeyboard(chatId,
 								"⚠️ Número do serviço inválido. Por favor, escolha um Número da lista.");
 					}
 
 					userStateObj.setServiceId(serviceId);
 					userStateObj.setState("AGUARDANDO_CONFIRMACAO");
 
-					return sendMessage(chatId,
+					return sendMessageWithKeyboard(chatId,
 							"🔍 Dados do agendamento: \n" + "Nome: " + userStateObj.getName() + "\nServico: "
 									+ selectedService.getNome() + "\nData Agendamento: " + userStateObj.getDateTime()
 									+ "\nPreço: R$ " + selectedService.getPreco() + "\n\nConfirme seu agendamento:\n"
 									+ "1️⃣ Confirmar\n" + "2️⃣ Corrigir data\n" + "3️⃣ Cancelar");
 				} catch (NumberFormatException e) {
-					return sendMessage(chatId, "⚠️ Número do serviço inválido. Por favor, escolha um Número da lista.");
+					return sendMessageWithKeyboard(chatId, "⚠️ Número do serviço inválido. Por favor, escolha um Número da lista.");
 				}
 			} else if (userStateObj != null && "AGUARDANDO_CONFIRMACAO".equals(userStateObj.getState())) {
 				if ("1".equals(text)) {
@@ -135,18 +152,18 @@ public class TelegramController extends TelegramWebhookBot {
 					appointmentRepository.save(appointment);
 
 					userState.remove(chatId);
-					return sendMessage(chatId, "✅ Agendamento confirmado com sucesso!");
+					return sendMessageWithKeyboard(chatId, "✅ Agendamento confirmado com sucesso!");
 				} else if ("2".equals(text)) {
 					userStateObj.setState("AGUARDANDO_DATA");
-					return sendMessage(chatId,
+					return sendMessageWithKeyboard(chatId,
 							"🔄 Ok! Informe novamente a data e horário (formato: dd/MM/aaaa HH:mm):");
 
 				} else if ("3".equals(text)) {
 					userState.remove(chatId);
-					return sendMessage(chatId,
+					return sendMessageWithKeyboard(chatId,
 							"❌ Agendamento cancelado. Caso queira tentar novamente, digite /agendar.");
 				} else {
-					return sendMessage(chatId, "⚠️ Opção inválida. Por favor, escolha:\n\n" + "1️⃣ Confirmar\n"
+					return sendMessageWithKeyboard(chatId, "⚠️ Opção inválida. Por favor, escolha:\n\n" + "1️⃣ Confirmar\n"
 							+ "2️⃣ Corrigir data\n" + "3️⃣ Cancelar");
 				}
 			} else if (text.equalsIgnoreCase("/servicos")) {
@@ -158,7 +175,7 @@ public class TelegramController extends TelegramWebhookBot {
 				return listarDuvidas(chatId);
 				
 			} else {
-				return sendMessage(chatId, "Olá! Para ver nossos serviços\ndigite /servicos \n\n"
+				return sendMessageWithKeyboard(chatId, "Olá! Para ver nossos serviços\ndigite /servicos \n\n"
 						+ " Para agendar uma consulta,\ndigite /agendar"
 						+ "\n\nPara ver datas e horários já agendados\ndigite /disponibilidade"
 						+ "\n\nPara ver as perguntas frequentes\ndigite /duvidas");
@@ -168,6 +185,46 @@ public class TelegramController extends TelegramWebhookBot {
 		return null;
 	}
 
+	private SendMessage sendMessageWithKeyboard(Long chatId, String text) {
+		SendMessage message = new SendMessage();
+		message.setChatId(chatId.toString());
+		message.setText(text);
+		
+		ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
+		keyboardMarkup.setResizeKeyboard(true);
+		keyboardMarkup.setOneTimeKeyboard(true);
+		
+		List<KeyboardRow> keyboard = new ArrayList<>();
+		
+		KeyboardRow row1 = new KeyboardRow();
+		row1.add("Agendar");
+		row1.add("Serviços");
+		keyboard.add(row1);
+		
+		KeyboardRow row2 = new KeyboardRow();
+		row2.add("Disponibilidade");
+		row2.add("Dúvidas");
+		keyboard.add(row2);
+		
+		keyboardMarkup.setKeyboard(keyboard);
+		message.setReplyMarkup(keyboardMarkup);
+		
+		return message;
+	}
+	
+	private SendMessage sendMessageWothoutKeyboard(Long chatId, String text) {
+		SendMessage message = new SendMessage();
+		message.setChatId(chatId.toString());
+		message.setText(text);
+		
+		ReplyKeyboardRemove keyboardRemove = new ReplyKeyboardRemove();
+		keyboardRemove.setRemoveKeyboard(true);
+		message.setReplyMarkup(keyboardRemove);
+		
+		return message;
+		
+	}
+	
 	private BotApiMethod<?> listarServicos(Long chatId) {
 		StringBuilder response = new StringBuilder("📋 Nossos Serviços Disponíveis:\n\n");
 
@@ -176,15 +233,8 @@ public class TelegramController extends TelegramWebhookBot {
 					.append(botService.getDescricao()).append(" - R$ ").append(botService.getPreco()).append("\n");
 		}
 
-		return sendMessage(chatId, response.toString());
+		return sendMessageWithKeyboard(chatId, response.toString());
 
-	}
-
-	private SendMessage sendMessage(Long chatId, String text) {
-		SendMessage message = new SendMessage();
-		message.setChatId(chatId.toString());
-		message.setText(text);
-		return message;
 	}
 	
 	private BotApiMethod<?> listaDatasDisponiveis(Long chatId){
@@ -196,7 +246,7 @@ public class TelegramController extends TelegramWebhookBot {
 			
 		}
 		
-		return sendMessage(chatId, response.toString());
+		return sendMessageWithKeyboard(chatId, response.toString());
 	}
 
 	private BotApiMethod<?> listarDuvidas(Long chatId) {
@@ -216,15 +266,15 @@ public class TelegramController extends TelegramWebhookBot {
 		
 		response.append("5- Como faço para corrigir um agendamento?\n"
 				+ "👉 Assim que preencher todos os dados, será apresentado 3 opções, escolha a opção 2️⃣ para "
-				+ "Corrigir data(Com esta opção é possível inserir novamente data e serviço desejado!\n\n");
+				+ "Corrigir data(Com esta opção é possível inserir novamente data e serviço desejado!)\n\n");
 		response.append("6- Erro: 'Formato de data inválido. Por favor, use o formato dd/MM/yyyy HH:mm!' O que fazer?"
 				+ "\nCertifique-se de que preencheu a data no seguinte formato: dia/mês/ano Horas:minutos"
-				+ "\nEx:01/01/2025 09:30(Lembre-se de colocar as barras!)");
+				+ "\nEx:01/01/2025 09:30(Lembre-se de colocar as barras!\n\n)");
 		response.append("-7 Erro: 'Este horário já está ocupado. Por favor, escolha outro horário!'\n"
 				+ "Basta digitar '/disponibilidade' que aparecerá as datas e horários já preenchidos.\n"
 				+ "Após isto escolha um outro horário!");
 
-		return sendMessage(chatId, response.toString());
+		return sendMessageWithKeyboard(chatId, response.toString());
 	}
 	
 	protected void enviarNotificacaoTelegram(Long chatId, String mensagem) {
