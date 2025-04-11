@@ -41,12 +41,12 @@ public class TelegramController extends TelegramWebhookBot {
 
 	@Override
 	public String getBotUsername() {
-		return "Bot-Agendador";
+		return "AgendaAí";
 	}
 
 	@Override
 	public String getBotToken() {
-		return "7737113823:AAHKcf6wEUtaNhb5AIE-7wMq52BB5ldnAY0";
+		return "8123481148:AAErdACO01xK8vG1vQVjvOA0CdPQ7Mi6DYA";
 	}
 
 	@Override
