@@ -41,12 +41,12 @@ public class TelegramController extends TelegramWebhookBot {
 
 	@Override
 	public String getBotUsername() {
-		return "AgendaAí";
+		return "nome_bot";
 	}
 
 	@Override
 	public String getBotToken() {
-		return "8123481148:AAErdACO01xK8vG1vQVjvOA0CdPQ7Mi6DYA";
+		return "seu_token";
 	}
 
 	@Override
@@ -97,6 +97,7 @@ public class TelegramController extends TelegramWebhookBot {
 					DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 					LocalDateTime dateTime = LocalDateTime.parse(text, formatter);
 					
+					
 					boolean isDateTaken = appointmentRepository.existsByDateTime(dateTime);
 					if(isDateTaken) {
 						return sendMessageWithKeyboard(chatId, "⚠️ Este horário já está ocupado. Por favor, escolha outro horário!");
@@ -120,6 +121,8 @@ public class TelegramController extends TelegramWebhookBot {
 				try {
 					Long serviceId = Long.parseLong(text);
 					BotService selectedService = serviceRepository.findById(serviceId).orElse(null);
+					DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+					String dataFormatada = userStateObj.getDateTime().format(formatter);
 
 					if (selectedService == null) {
 						return sendMessageWithKeyboard(chatId,
@@ -131,7 +134,7 @@ public class TelegramController extends TelegramWebhookBot {
 
 					return sendMessageWithKeyboard(chatId,
 							"🔍 Dados do agendamento: \n" + "Nome: " + userStateObj.getName() + "\nServico: "
-									+ selectedService.getNome() + "\nData Agendamento: " + userStateObj.getDateTime()
+									+ selectedService.getNome() + "\nData Agendamento: " + dataFormatada
 									+ "\nPreço: R$ " + selectedService.getPreco() + "\n\nConfirme seu agendamento:\n"
 									+ "1️⃣ Confirmar\n" + "2️⃣ Corrigir data\n" + "3️⃣ Cancelar");
 				} catch (NumberFormatException e) {
@@ -166,19 +169,19 @@ public class TelegramController extends TelegramWebhookBot {
 					return sendMessageWithKeyboard(chatId, "⚠️ Opção inválida. Por favor, escolha:\n\n" + "1️⃣ Confirmar\n"
 							+ "2️⃣ Corrigir data\n" + "3️⃣ Cancelar");
 				}
-			} else if (text.equalsIgnoreCase("/servicos")) {
+			} else if (text.equalsIgnoreCase("servicos")) {
 				return listarServicos(chatId);
-			}else if(text.equalsIgnoreCase("/disponibilidade")) {
+			}else if(text.equalsIgnoreCase("agendados")) {
 				return listaDatasDisponiveis(chatId);
 				
-			}else if(text.equalsIgnoreCase("/duvidas")) {
+			}else if(text.equalsIgnoreCase("duvidas")) {
 				return listarDuvidas(chatId);
 				
 			} else {
-				return sendMessageWithKeyboard(chatId, "Olá! Para ver nossos serviços\ndigite /servicos \n\n"
-						+ " Para agendar uma consulta,\ndigite /agendar"
-						+ "\n\nPara ver datas e horários já agendados\ndigite /disponibilidade"
-						+ "\n\nPara ver as perguntas frequentes\ndigite /duvidas");
+				return sendMessageWithKeyboard(chatId, "Olá! Para ver nossos serviços\ndigite servicos \n\n"
+						+ " Para agendar uma consulta,\ndigite agendar"
+						+ "\n\nPara ver datas e horários já agendados\ndigite agendados"
+						+ "\n\nPara ver as perguntas frequentes\ndigite duvidas");
 			}
 		}
 
@@ -267,11 +270,13 @@ public class TelegramController extends TelegramWebhookBot {
 		response.append("5- Como faço para corrigir um agendamento?\n"
 				+ "👉 Assim que preencher todos os dados, será apresentado 3 opções, escolha a opção 2️⃣ para "
 				+ "Corrigir data(Com esta opção é possível inserir novamente data e serviço desejado!)\n\n");
+		
 		response.append("6- Erro: 'Formato de data inválido. Por favor, use o formato dd/MM/yyyy HH:mm!' O que fazer?"
 				+ "\nCertifique-se de que preencheu a data no seguinte formato: dia/mês/ano Horas:minutos"
-				+ "\nEx:01/01/2025 09:30(Lembre-se de colocar as barras!\n\n)");
+				+ "\nEx:01/01/2025 09:30(Lembre-se de colocar as barras!)\n\n");
+		
 		response.append("-7 Erro: 'Este horário já está ocupado. Por favor, escolha outro horário!'\n"
-				+ "Basta digitar '/disponibilidade' que aparecerá as datas e horários já preenchidos.\n"
+				+ "Basta digitar '/agendados' que aparecerá as datas e horários já preenchidos.\n"
 				+ "Após isto escolha um outro horário!");
 
 		return sendMessageWithKeyboard(chatId, response.toString());
